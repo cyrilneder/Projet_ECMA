@@ -1,6 +1,7 @@
 using JuMP
 using CPLEX
 
+cd("data 2")
 path = "data 2/10_ulysses_3.tsp"
 
 function callbackMain(inputFile::String)
