@@ -46,7 +46,6 @@ function static_solving(inputFile::String)
       for k in 1:K
             println(findall(!iszero, vy[k,:]))
       end
-      println(m)
 end
 
 static_solving(path)
