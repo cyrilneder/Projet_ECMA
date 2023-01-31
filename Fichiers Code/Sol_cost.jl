@@ -42,7 +42,7 @@ function swap!(sol::Solution, s1::Int64, s2::Int64)
     k1 = findfirst(lamb -> lamb==1, sol.y[:,s1])
     k2 = findfirst(lamb -> lamb==1, sol.y[:,s2])
 
-
+    
 
 
 end
