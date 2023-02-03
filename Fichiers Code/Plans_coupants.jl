@@ -37,8 +37,6 @@ function plans_coupants(inputFile::String)
     #Objectif
     @objective(m, Min, z)
 
-    
-
     # Désactive les sorties de CPLEX (optionnel)
     set_optimizer_attribute(m, "CPX_PARAM_SCRIND", 0)
 
@@ -55,16 +53,12 @@ function plans_coupants(inputFile::String)
     end
 
     # Résolution de SP1 et récupération des données
-    z1, delta1_val = sp1_solve(inputFile, x_val, l)
+    z1, delta1_val = SP1_solve(inputFile, x_val, l)
 
     # Actualisation de U1
     if z1 > z_val
-        l1 = l
-        for i in 1:n
-            for j in i+1:n
-                l1[i,j] += delta1_val[i,j]*(lh[i]+lh[j])
-            end
-        end
+        l1 = l .+ delta1_val .*(lh .+ transpose(lh))
+        println("this is diff : ", l1-l)
         push!(U1, l1)
         println("Add constraint type SP1 because of objective breach ", z1)
     end
@@ -110,8 +104,6 @@ function plans_coupants(inputFile::String)
         #Objectif
         @objective(m, Min, z)
 
-        
-
         # Désactive les sorties de CPLEX (optionnel)
         set_optimizer_attribute(m, "CPX_PARAM_SCRIND", 0)
 
@@ -128,18 +120,14 @@ function plans_coupants(inputFile::String)
         end
 
         # Résolution de SP1 et récupération des données
-        z1, delta1_val = sp1_solve(inputFile, x_val, l)
+        z1, delta1_val = SP1_solve(inputFile, x_val, l)
 
         # Actualisation de U1
         if z1 > z_val
-            l1 = l
-            for i in 1:n
-                for j in i+1:n
-                    l1[i,j] += delta1_val[i,j]*(lh[i]+lh[j])
-                end
-            end
+            l1 = l .+ delta1_val .*(lh .+ transpose(lh))
             push!(U1, l1)
             println("Add constraint type SP1 because of objective breach ", z1)
+            #println("diff is :", l1)
         end
 
         # Résolution de SP2_k et récupération des données

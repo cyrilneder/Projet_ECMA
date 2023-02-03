@@ -1,7 +1,7 @@
 using JuMP
 using CPLEX
 
-function sp1_solve(inputFile::String, x_val, l)
+function SP1_solve(inputFile::String, x_val, l)
 
     include(inputFile)
 
@@ -30,7 +30,15 @@ function sp1_solve(inputFile::String, x_val, l)
             z1 = JuMP.objective_value(SP1)
     end
 
-    return z1, delta1_val
+    # Conversion de delta1_val car type pas approprié pour plans_coupants
+    delta1_val_converted = zeros(n,n)
+
+    for i in 1:n
+        for j in i+1:n
+            delta1_val_converted[i,j] = delta1_val[i,j]
+        end
+    end
+    return z1, delta1_val_converted
 end
 
 function SP2k_solve(inputFile::String, y_val)
