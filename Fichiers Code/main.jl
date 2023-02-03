@@ -1,12 +1,12 @@
 include("Sol_cost.jl")
 
-#= sol = parse("10_ulysses_3.tsp")
-sol = parse("10_ulysses_6.tsp")
+sol = parse("10_ulysses_3.tsp")
+#= sol = parse("10_ulysses_6.tsp")
 sol = parse("10_ulysses_9.tsp") 
 sol = parse("14_burma_3.tsp")
 sol = parse("14_burma_6.tsp")=#
-sol = parse("14_burma_9.tsp")
-#= sol = parse("22_ulysses_3.tsp")
+#= sol = parse("14_burma_9.tsp")
+sol = parse("22_ulysses_3.tsp")
 sol = parse("22_ulysses_6.tsp")
 sol = parse("22_ulysses_9.tsp")
 sol = parse("26_eil_3.tsp")
@@ -55,9 +55,14 @@ sol = parse("532_att_3.tsp")
 sol = parse("532_att_6.tsp")
 sol = parse("532_att_9.tsp") =#
 
-sol_real = real_sol(sol)
-print_sets(sol_real)
+real_sol!(sol)
+print_sets(sol)
 println("B=",sol.B)
 println(sol.cost)
+println(sol.vy)
+
+heur_sol = vns(sol)
+print_sets(heur_sol)
+println(heur_sol.cost)
 
 #dualisation("data 2/10_ulysses_3.tsp")

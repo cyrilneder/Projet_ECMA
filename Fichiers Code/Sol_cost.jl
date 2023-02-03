@@ -4,6 +4,8 @@
 # - Swap de deux sommets
 # - Changement d'ensemble d'un sommets
 
+import Base.copy
+
 
 mutable struct Solution
     n::Int64                                    #Amount of vertices
@@ -36,6 +38,19 @@ function parse(inst::String)
 
 end
 
+function copy(sol::Solution)
+    sol2 = Solution()
+    sol2.n = copy(sol.n)
+    sol2.l = copy(sol.l)
+    sol2.B = copy(sol.B)
+    sol2.w_v = copy(sol.w_v)
+    sol2.vx = copy(sol.vx)
+    sol2.vy = copy(sol.vy)
+    sol2.K = copy(sol.K)
+    sol2.Nsets = copy(sol.Nsets)
+    sol2.cost = copy(sol.cost)
+    return sol2
+end
 
 function verify_weight(sol::Solution,yk::Vector{Int64})
     #yk is a potential new set of vertices ; it needs to satisfy the weight constraint    
@@ -52,7 +67,7 @@ function verify_weight(sol::Solution,y::Vector{Vector{Int64}})
 end
 
 function corresponding_x(newy::Vector{Vector{Int64}})
-    n = length(newy[1][:])
+    n = length(newy[1])
     K = length(newy)
     x = [[0 for j in i+1:n] for i in 1:n-1]
     for k in 1:K
@@ -76,7 +91,7 @@ function update_Nsets!(sol::Solution)
     K = sol.K
     Nsets = 0
     for k in 1:K
-        used_set = (sum(sol.vy[k][:]) >= 1)
+        used_set = (sum(sol.vy[k]) >= 1)
         if used_set
             Nsets += 1
         end
@@ -97,8 +112,11 @@ end
 
 
 function swapped(sol::Solution, s1::Int64, s2::Int64)
-    k1 = findfirst(lamb -> lamb==1, sol.vy[:][s1])
-    k2 = findfirst(lamb -> lamb==1, sol.vy[:][s2])
+    println(sol.vy)
+    println(s1)
+    println(s2)
+    k1 = findfirst(lamb -> lamb==1, [sol.vy[k][s1] for k in 1:sol.K])
+    k2 = findfirst(lamb -> lamb==1, [sol.vy[k][s2] for k in 1:sol.K])
     yp = copy(sol.vy)
 
     yp[k1][s1] = 0
@@ -116,11 +134,13 @@ function swapped(sol::Solution, s1::Int64, s2::Int64)
 end
 
 function changed_set(sol::Solution, s1::Int64, k::Int64)
-    k1 = findfirst(lamb -> lamb==1, sol.vy[:][s1])
+    k1 = findfirst(lamb -> lamb==1, [sol.vy[i][s1] for i in 1:sol.K])
     yp = copy(sol.vy)
 
     yp[k1][s1] = 0
     yp[k][s1] = 1
+    println("yp :",yp)
+    println("vy :",sol.vy)
 
     sp = copy(sol)
     if verify_weight(sp,yp)
@@ -189,7 +209,7 @@ function real_sol(n::Int64, l::Matrix{Float64}, B::Int64, w_v::Vector{Int64}, K:
 
 end
 
-function real_sol(sol::Solution)
+function real_sol!(sol::Solution)
     #Ici sol fait office d'instance de départ, sans valeur attribuée à vx et vy
     
     #Heuristique ne garantissant pas une solution réalisable (plutôt à faire avec la PPC)
@@ -264,13 +284,56 @@ function print_sets(sol::Solution)
     end
 end
 
-function vns(sol::Solution)
+function vns(sol::Solution ; dur::Int64 = 30)
     #A ce stade sol est une solution réalisable de valeur très peu optimisée
-    #On réalise une recherche à voisinage variable déterministe pour naviguer entre optima locaux
+    #On réalise une descente à voisinages variables déterministe pour naviguer entre optima locaux
 
+    startime = time_ns()/1000000000
+    nit = 0
+
+    cursol = copy(sol)
     bestsol = copy(sol)
     testsol = copy(sol)
+    n = sol.n
+    K = sol.K
 
+    currentime = time_ns()/1000000000
+    finished = (currentime - startime >= dur)
 
+    while !finished
+        nit += 1
+        #Essai de shift 
+        for s in 1:n
+            for k in 1:K
+                testsol = changed_set(cursol, s, k)
+                update_cost!(testsol)
+                update_Nsets!(testsol)
+                if testsol.cost < bestsol.cost
+                    bestsol = copy(testsol)
+                end
+                testsol = copy(cursol)
+            end
+        end
 
+        #Essai de swap
+        for s1 in 1:n
+            for s2 in 1:n
+                testsol = swapped(cursol, s1, s2)
+                update_cost!(testsol)
+                update_Nsets!(testsol)
+                if testsol.cost < bestsol.cost
+                    bestsol = copy(testsol)
+                end
+                testsol = copy(cursol)
+            end
+        end
+
+        cursol = copy(bestsol)
+
+        currentime = time_ns()/1000000000
+        finished = (currentime - startime >= dur)
+    end
+    println("Nombre d'itérations :",nit)
+
+    return cursol
 end
