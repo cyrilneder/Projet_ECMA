@@ -44,8 +44,8 @@ function copy(sol::Solution)
     sol2.l = copy(sol.l)
     sol2.B = copy(sol.B)
     sol2.w_v = copy(sol.w_v)
-    sol2.vx = copy(sol.vx)
-    sol2.vy = copy(sol.vy)
+    sol2.vx = deepcopy(sol.vx)
+    sol2.vy = deepcopy(sol.vy)
     sol2.K = copy(sol.K)
     sol2.Nsets = copy(sol.Nsets)
     sol2.cost = copy(sol.cost)
@@ -112,41 +112,44 @@ end
 
 
 function swapped(sol::Solution, s1::Int64, s2::Int64)
-    println(sol.vy)
-    println(s1)
-    println(s2)
+    sp = copy(sol)
+
     k1 = findfirst(lamb -> lamb==1, [sol.vy[k][s1] for k in 1:sol.K])
     k2 = findfirst(lamb -> lamb==1, [sol.vy[k][s2] for k in 1:sol.K])
-    yp = copy(sol.vy)
 
-    yp[k1][s1] = 0
-    yp[k1][s2] = 1
-    yp[k2][s2] = 0
-    yp[k2][s1] = 1
+    if k1 != k2
+        yp = deepcopy(sol.vy)
 
-    sp = copy(sol)
-    if verify_weight(sp,yp)
-        sp.vx = corresponding_x(yp)
-        sp.vy = yp
-        update_cost!(sp)
+        yp[k1][s1] = 0
+        yp[k2][s2] = 0
+        yp[k1][s2] = 1
+        yp[k2][s1] = 1
+
+        if verify_weight(sp,yp)
+            sp.vx = corresponding_x(yp)
+            sp.vy = yp
+            update_cost!(sp)
+        end
     end
     return sp    
 end
 
 function changed_set(sol::Solution, s1::Int64, k::Int64)
+
     k1 = findfirst(lamb -> lamb==1, [sol.vy[i][s1] for i in 1:sol.K])
-    yp = copy(sol.vy)
-
-    yp[k1][s1] = 0
-    yp[k][s1] = 1
-    println("yp :",yp)
-    println("vy :",sol.vy)
-
     sp = copy(sol)
-    if verify_weight(sp,yp)
-        sp.vx = corresponding_x(yp)
-        sp.vy = yp
-        update_cost!(sp)
+
+    if k1 != k
+        yp = deepcopy(sol.vy)
+
+        yp[k1][s1] = 0
+        yp[k][s1] = 1
+
+        if verify_weight(sp,yp)
+            sp.vx = corresponding_x(yp)
+            sp.vy = yp
+            update_cost!(sp)
+        end
     end
     return sp
 end
@@ -236,8 +239,6 @@ function real_sol!(sol::Solution)
         while fillable
             yk[to_place[s]] = 1
             current_weight += w_v[to_place[s]]
-            #println("current weight:",current_weight)
-            #println("added vertex:",to_place[s])
             deleteat!(to_place_w, s)
             deleteat!(to_place, s)
 
@@ -316,8 +317,8 @@ function vns(sol::Solution ; dur::Int64 = 30)
         end
 
         #Essai de swap
-        for s1 in 1:n
-            for s2 in 1:n
+        for s1 in 1:n-1
+            for s2 in s1+1:n
                 testsol = swapped(cursol, s1, s2)
                 update_cost!(testsol)
                 update_Nsets!(testsol)
