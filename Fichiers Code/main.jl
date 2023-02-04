@@ -63,6 +63,6 @@ println(sol.vy)
 
 heur_sol = vns(sol)
 print_sets(heur_sol)
-println(heur_sol.cost)
+println(heur_sol.cost) 
 
 #dualisation("data 2/10_ulysses_3.tsp")
