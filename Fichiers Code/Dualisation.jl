@@ -60,4 +60,4 @@ function dualisation(inputFile::String)
       println(m)
 end
 
-#dualisation(path)
+dualisation(path)
