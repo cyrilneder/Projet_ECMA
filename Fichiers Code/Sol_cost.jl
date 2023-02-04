@@ -293,6 +293,7 @@ function vns(sol::Solution ; dur::Int64 = 30)
     nit = 0
 
     cursol = copy(sol)
+    randsol = copy(sol)
     bestsol = copy(sol)
     testsol = copy(sol)
     n = sol.n
@@ -303,6 +304,10 @@ function vns(sol::Solution ; dur::Int64 = 30)
 
     while !finished
         nit += 1
+
+        neigh = rand(1:2)
+        
+
         #Essai de shift 
         for s in 1:n
             for k in 1:K
