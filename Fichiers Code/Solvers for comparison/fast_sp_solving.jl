@@ -1,7 +1,7 @@
 using JuMP
 using CPLEX
 
-function fast_SP1_solve(inputFile::String, x_val, l)
+function fast_SP1_solve(inputFile::String, x_val, l, TimeLimit::Int64)
 
     include(inputFile)
 
@@ -17,6 +17,9 @@ function fast_SP1_solve(inputFile::String, x_val, l)
 
     # Désactive les sorties de CPLEX (optionnel)
     set_optimizer_attribute(SP1, "CPX_PARAM_SCRIND", 0)
+
+    # Définit une limite de temps
+    set_optimizer_attribute(SP1, "CPX_PARAM_TILIM", TimeLimit)
 
     #Résolution
     optimize!(SP1)
@@ -41,7 +44,7 @@ function fast_SP1_solve(inputFile::String, x_val, l)
     return z1, delta1_val_converted
 end
 
-function fast_SP2k_solve(inputFile::String, y_val)
+function fast_SP2k_solve(inputFile::String, y_val, TimeLimit::Int64)
 
     include(inputFile)
 
@@ -52,15 +55,18 @@ function fast_SP2k_solve(inputFile::String, y_val)
     for k in 1:K
         SP2k = Model(CPLEX.Optimizer)
 
-        @variable(SP2k, delta2k[i in 1:n] >= 0)
+        @variable(SP2k, delta2k[i in k:n] >= 0)
 
-        @constraint(SP2k, sum(delta2k[i] for i in 1:n) <= W)
-        @constraint(SP2k, [i in 1:n], delta2k[i] <= W_v[i])
+        @constraint(SP2k, sum(delta2k[i] for i in k:n) <= W)
+        @constraint(SP2k, [i in k:n], delta2k[i] <= W_v[i])
 
-        @objective(SP2k, Max, sum(w_v[i]*(1 + delta2k[i])*y_val[k,i]  for i in 1:n))
+        @objective(SP2k, Max, sum(w_v[i]*(1 + delta2k[i])*y_val[k,i]  for i in k:n))
 
         # Désactive les sorties de CPLEX (optionnel)
         set_optimizer_attribute(SP2k, "CPX_PARAM_SCRIND", 0)
+
+        # Définit une limite de temps
+        set_optimizer_attribute(SP2k, "CPX_PARAM_TILIM", TimeLimit)
 
         #Résolution
         optimize!(SP2k)
@@ -70,7 +76,7 @@ function fast_SP2k_solve(inputFile::String, y_val)
         isOptimal = termination_status(SP2k) == MOI.OPTIMAL
         if feasibleSolutionFound
                 # Récupération des valeurs d’une variable
-                delta2_val[k,:] = JuMP.value.(delta2k)
+                delta2_val[k,k:end] = JuMP.value.(delta2k)
                 push!(z2, JuMP.objective_value(SP2k))
         end
     end

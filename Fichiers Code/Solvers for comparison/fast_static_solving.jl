@@ -14,14 +14,15 @@ function fast_static_solving(inputFile::String, TimeLimit::Int64)
 
       #Variables
       @variable(m, x[i in 1:n, j in i+1:n], Bin)
-      @variable(m, y[k in 1:K, i in 1:n], Bin)
+      @variable(m, y[k in 1:K, i in k:n], Bin)
 
       #Contraintes Xcomb
-      @constraint(m, [i in 1:n, j in i+1:n, k in 1:K], y[k,i] + y[k,j] <= 1+x[i,j])
+      @constraint(m, [k in 1:K, i in k:n, j in i+1:n], y[k,i] + y[k,j] <= 1+x[i,j])
 
-      @constraint(m, [i in 1:n], sum(y[k,i] for k in 1:K) == 1)
+      @constraint(m, [i in 1:K], sum(y[k,i] for k in 1:i) == 1)
+      @constraint(m, [i in K+1:n], sum(y[k,i] for k in 1:K) == 1)
 
-      @constraint(m, [k in 1:K], sum(w_v[i]*y[k,i] for i in 1:n) <= B)
+      @constraint(m, [k in 1:K], sum(w_v[i]*y[k,i] for i in k:n) <= B)
 
       #Objectif
       @objective(m, Min, sum(l[i,j]*x[i,j] for i in 1:n,j in i+1:n))

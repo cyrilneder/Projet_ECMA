@@ -14,26 +14,27 @@ function fast_dualisation(inputFile::String, TimeLimit::Int64)
 
     #Variables primales
     @variable(m, x[i in 1:n, j in i+1:n], Bin)
-    @variable(m, y[k in 1:K, i in 1:n], Bin)
+    @variable(m, y[k in 1:K, i in k:n], Bin)
 
     #Variables duales
     @variable(m, beta[i in 1:n, j in i+1:n] >= 0)
     @variable(m, alpha >= 0)
     @variable(m, gamma[k in 1:K] >= 0)
-    @variable(m, zeta[k in 1:K, i in 1:n] >= 0)
+    @variable(m, zeta[k in 1:K, i in k:n] >= 0)
 
     #Contraintes Xcomb
-    @constraint(m, [i in 1:n, j in i+1:n, k in 1:K], y[k,i] + y[k,j] <= 1+x[i,j])
-    #@constraint(m, [i in 1:n, j in i+1:n, k in 1:K], y[k,i] - y[k,j] <= 1-x[i,j])
-    #@constraint(m, [i in 1:n, j in i+1:n, k in 1:K], -y[k,i] + y[k,j] <= 1-x[i,j])
+    @constraint(m, [k in 1:K, i in k:n, j in i+1:n], y[k,i] + y[k,j] <= 1+x[i,j])
 
-    @constraint(m, [i in 1:n], sum(y[k,i] for k in 1:K) == 1)
+    @constraint(m, [i in 1:K], sum(y[k,i] for k in 1:i) == 1)
+    @constraint(m, [i in K+1:n], sum(y[k,i] for k in 1:K) == 1)
+
+    @constraint(m, [k in 1:K], sum(y[k,i] for i in k:n) >= 1)
 
     #Contraintes Xnum et autres dualisées
     @constraint(m, [i in 1:n, j in i+1:n], alpha + beta[i,j] >= (lh[i] + lh[j])*x[i,j])
-    @constraint(m, [k in 1:K], W*gamma[k] + sum(w_v[i]*y[k,i] + W_v[i]*zeta[k,i] for i in 1:n) <= B)
+    @constraint(m, [k in 1:K], W*gamma[k] + sum(w_v[i]*y[k,i] + W_v[i]*zeta[k,i] for i in k:n) <= B)
 
-    @constraint(m, [i in 1:n, k in 1:K], gamma[k] + zeta[k,i] >= w_v[i]*y[k,i])
+    @constraint(m, [k in 1:K, i in k:n], gamma[k] + zeta[k,i] >= w_v[i]*y[k,i])
 
 
     #Objectif
@@ -46,14 +47,16 @@ function fast_dualisation(inputFile::String, TimeLimit::Int64)
     #Résolution
     optimize!(m)
 
+    computation_time = time() - start
+
     # Récupération du status de la résolution
     feasibleSolutionFound = primal_status(m) == MOI.FEASIBLE_POINT
     isOptimal = termination_status(m) == MOI.OPTIMAL
     if feasibleSolutionFound
-        computation_time = time() - start
-
         # Récupération de la valeur de l'objectif
         vOpt = JuMP.objective_value(m)
+    else   
+        vOpt = -1
     end
 
     return vOpt, computation_time
