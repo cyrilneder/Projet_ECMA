@@ -445,25 +445,24 @@ function robust_model!(sol::Solution)
 end
 
 
-function robust_opt(inst::String ; dur::Int64 = 60)
+
+function robust_opt(inst::String ; n_vns = 10)
     sol = parse(inst)
+    dur_vns = max(trunc(Int64,5*sol.n^2//3000), 5)
+
     real_sol!(sol)
     #A ce stade sol est une solution respectant la robustesse des contraintes de poids
 
-    bestsol = vns(sol ; dur = 5)
+    bestsol = vns(sol ; dur = dur_vns)
 
     robust_model!(bestsol)
     #A ce stade le coût de bestsol est bien en accord avec la robustesse des longueurs
-    println("Coût de la solution robuse :", bestsol.cost)
+    println("Coût de la solution robuste :", bestsol.cost)
 
     cursol = copy(bestsol)
-    startime = time_ns()/1000000000
 
-    finished = false
-
-    while !finished
-
-        cursol = vns(bestsol ; dur = 5)
+    for _ in 1:n_vns
+        cursol = vns(bestsol ; dur = dur_vns)
         #A ce stade cursol est de coût inférieur à celui de bestsol
 
         robust_model!(cursol)
@@ -473,12 +472,11 @@ function robust_opt(inst::String ; dur::Int64 = 60)
             bestsol = copy(cursol)
         end
 
-        currentime = time_ns()/1000000000
-        finished = (currentime - startime >= dur)
         println("Coût de la meilleure solution robuste :",bestsol.cost)
     end
 
     return sol
 end
 
+function write_sol(sol::Solution)
 

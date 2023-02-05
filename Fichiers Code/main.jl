@@ -9,7 +9,7 @@ inst_names = readdir(cwd*"\\data 2")
     sol = robust_opt(inst)
 end =#
 
-sol = robust_opt("10_ulysses_6.tsp")
+sol = robust_opt("202_gr_3.tsp")
 
 #sol = parse("10_ulysses_3.tsp")
 #sol = parse("10_ulysses_6.tsp")
