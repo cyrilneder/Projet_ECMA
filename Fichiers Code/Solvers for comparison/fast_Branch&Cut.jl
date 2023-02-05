@@ -21,16 +21,17 @@ function fast_branch_and_cut(inputFile::String, TimeLimit::Int64)
     #Variables
     @variable(m, z >= 0)
     @variable(m, x[i in 1:n, j in i+1:n], Bin)
-    @variable(m, y[k in 1:K, i in 1:n], Bin)
+    @variable(m, y[k in 1:K, i in k:n], Bin)
 
     #Contraintes Xcomb
     @constraint(m, z >= sum(l[i,j]*x[i,j] for i in 1:n,j in i+1:n))
 
-    @constraint(m, [i in 1:n, j in i+1:n, k in 1:K], y[k,i] + y[k,j] <= 1+x[i,j])
+    @constraint(m, [k in 1:K, i in k:n, j in i+1:n], y[k,i] + y[k,j] <= 1+x[i,j])
 
-    @constraint(m, [i in 1:n], sum(y[k,i] for k in 1:K) == 1)
+    @constraint(m, [i in 1:K], sum(y[k,i] for k in 1:i) == 1)
+    @constraint(m, [i in K+1:n], sum(y[k,i] for k in 1:K) == 1)
 
-    @constraint(m, [k in 1:K], sum(w_v[i]*y[k,i] for i in 1:n) <= B)
+    @constraint(m, [k in 1:K], sum(w_v[i]*y[k,i] for i in k:n) <= B)
 
     #Objectif
     @objective(m, Min, z)
@@ -47,7 +48,7 @@ function fast_branch_and_cut(inputFile::String, TimeLimit::Int64)
             z_val = callback_value(cb_data, z)
 
             # Résolution de SP1 et récupération des données
-            z1, delta1_val = fast_SP1_solve(inputFile, x_val, l)
+            z1, delta1_val = fast_SP1_solve(inputFile, x_val, l, TimeLimit)
 
             if z1 > z_val
                 cstr = @build_constraint(z >= sum((l[i,j] + delta1_val[i,j]*(lh[i]+lh[j]))*x[i,j]  for i in 1:n,j in i+1:n))
@@ -55,11 +56,11 @@ function fast_branch_and_cut(inputFile::String, TimeLimit::Int64)
             end
 
             # Résolution de SP2_k et récupération des données
-            z2, delta2_val = fast_SP2k_solve(inputFile, y_val)
+            z2, delta2_val = fast_SP2k_solve(inputFile, y_val, TimeLimit)
 
-            if maximum(z2) > B
-                for k in 1:K
-                    cstr = @build_constraint(sum(w_v[i]*(1 + delta2_val[k,i])*y[k,i]  for i in 1:n) <= B)
+            for k in 1:K
+                if z2[k] > B
+                    cstr = @build_constraint(sum(w_v[i]*(1 + delta2_val[k,i])*y[k,i]  for i in k:n) <= B)
                     MOI.submit(m, MOI.LazyConstraint(cb_data), cstr)
                 end
             end
@@ -76,14 +77,16 @@ function fast_branch_and_cut(inputFile::String, TimeLimit::Int64)
     MOI.set(m, CPLEX.CallbackFunction(), mon_super_callback)
     optimize!(m)
 
+    computation_time = time() - start
+
     # Récupération du status de la résolution
-    println(primal_status(m))
     feasibleSolutionFound = primal_status(m) == MOI.FEASIBLE_POINT
     isOptimal = termination_status(m) == MOI.OPTIMAL
     if feasibleSolutionFound
-            computation_time = time() - start
-            # Récupération de la valeur optimale
-            vOpt = JuMP.objective_value(m)
+        # Récupération de la valeur de l'objectif
+        vOpt = JuMP.objective_value(m)
+    else   
+        vOpt = -1 # No feasible solution found
     end
 
     return vOpt, computation_time
