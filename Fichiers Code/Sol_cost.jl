@@ -238,10 +238,12 @@ function real_sol!(sol::Solution)
         end
         y[k] = copy(yk)
         k += 1
-
+    end
+    if !verify_weights(sol)
+        println("ERREUR : SOLUTION NON REALISABLE")
+        return -1
     end
     if isempty(to_place)
-        println("Placement fini")
         sol.vy = y
         sol.vx = corresponding_x(y)
         sol.delta1 = [[0 for j in i+1:n] for i in 1:n-1]
@@ -251,7 +253,6 @@ function real_sol!(sol::Solution)
         println("Solution réalisable non trouvée.")
         return -1
     end
-
 
 end
 
@@ -475,8 +476,36 @@ function robust_opt(inst::String ; n_vns = 10)
         println("Coût de la meilleure solution robuste :",bestsol.cost)
     end
 
-    return sol
+    return bestsol
 end
 
-function write_sol(sol::Solution)
+function write_sol(sol::Solution, inst::String)
+    cwd = pwd()
+    try
+        file = open(cwd*"\\Heuristic_sol\\Heur_sol_"*inst[1:length(inst)-4]*".txt", "w") 
+        write(file, "Test !\n")
+        write(file, "Solution obtenue : "*string(sol.vy)*"\n \n")
+        write(file, "Ensembles déterminés :\n")
+        for k in 1:sol.K
+            vk = Vector{Int64}([])
+            for i in 1:sol.n
+                if sol.vy[k][i] == 1
+                    push!(vk,i)
+                end
+            end
+            write(file, string(vk)*"\n")
+        end
+        write(file, "\nCoût de la solution : "*string(sol.cost)*"\n \n")
+        write(file, "Caractérisation de la robustesse pour les longueurs : "*string(sol.delta1)*"\n \n")
+        close(file)
+    catch exc
+        println("Une erreur s'est produite : $exc")
+    end
+end
 
+
+function generate_solution(inst::String)
+    sol = robust_opt(inst)
+    write_sol(sol, inst)
+    return sol
+end

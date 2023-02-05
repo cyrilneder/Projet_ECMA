@@ -3,13 +3,10 @@ include("Sol_cost.jl")
 cwd = pwd()
 inst_names = readdir(cwd*"\\data 2")
 
-#= for (index,inst) in enumerate(inst_names)
-
+for (index,inst) in enumerate(inst_names)
     println("instance :",inst)
-    sol = robust_opt(inst)
-end =#
-
-sol = robust_opt("202_gr_3.tsp")
+    sol = generate_solution(inst)
+end 
 
 #sol = parse("10_ulysses_3.tsp")
 #sol = parse("10_ulysses_6.tsp")
